@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KPOs Attendance Portal</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #eef2f3;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 430px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #00695c;
+    }
+    label {
+      display: block;
+      margin-top: 14px;
+      font-weight: bold;
+      color: #004d40;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 15px;
+      margin-top: 6px;
+      border: 1.5px solid #00695c;
+      border-radius: 6px;
+      outline: none;
+    }
+    input[readonly] {
+      background: #f0f0f0;
+    }
+    button {
+      background: #00695c;
+      color: white;
+      font-weight: bold;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #004d40;
+    }
+    video {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>KPOs Attendance Portal</h2>
+    <form id="attendanceForm">
+      <label for="name">Name</label>
+      <select id="name" required>
+        <option value="" disabled selected>Select your name</option>
+        <option>Abdul Waheed</option>
+        <option>Ali Raza</option>
+        <option>Aqil Shah</option>
+        <option>Arif Hussain</option>
+        <option>Ehteshan Ali</option>
+        <option>Hammad Ahmed</option>
+        <option>Ibrar Hussain</option>
+        <option>Inzimam Khan</option>
+        <option>Junaid</option>
+        <option>Khurram Shehzad</option>
+        <option>Muhammad Umair</option>
+        <option>Mutair Ali</option>
+        <option>Nazim Shah</option>
+        <option>Rameez Raja</option>
+        <option>Shoaib Ahmed</option>
+        <option>Syed Saqlain</option>
+        <option>Tufail Fareed</option>
+        <option>Usama Fayyaz</option>
+        <option>Usman</option>
+        <option>Waleed Abdullah</option>
+        <option>Waleed Ijaz</option>
+        <option>Waqas Ahmed</option>
+        <option>Yasir</option>
+        <option>Saad Khalid</option>
+        <option>Yawar</option>
+      </select>
+
+      <label for="action">Action</label>
+      <select id="action" required>
+        <option value="" disabled selected>Select action</option>
+        <option>Time In</option>
+        <option>Time Out</option>
+      </select>
+
+      <label for="distribution">Distribution</label>
+      <input type="text" id="distribution" readonly />
+
+      <label for="selfie">Selfie</label>
+      <video id="video" autoplay playsinline></video>
+      <button type="button" onclick="capture()">📸 Capture Selfie</button>
+
+      <canvas id="canvas" style="display:none;"></canvas>
+      <input type="hidden" id="selfie" name="selfie" />
+
+      <button type="submit">✅ Submit Attendance</button>
+    </form>
+  </div>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbx5U072k2bY06XAhutQV0bnth7vVmUipecCMp1SjoZz-22p_5uv8LKiHCzlCxkhBTjO/exec";
+
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const selfieInput = document.getElementById("selfie");
+    let videoStream;
+
+    const nameEl = document.getElementById("name");
+    const distEl = document.getElementById("distribution");
+
+    const distMap = {
+      "Abdul Waheed": "Shan Marketing 1",
+      "Ali Raza": "Reliance Distribution",
+      "Aqil Shah": "Mansehra Traders",
+      "Arif Hussain": "Insaf Traders",
+      "Ehteshan Ali": "Shan Marketing 2",
+      "Hammad Ahmed": "Chaudhary Marketing 1",
+      "Ibrar Hussain": "Shan Marketing 2",
+      "Inzimam Khan": "Geco Supplies",
+      "Junaid": "Pak Traders",
+      "Khurram Shehzad": "Zak Enterprises",
+      "Muhammad Umair": "FSNA Traders",
+      "Mutair Ali": "Radiant Distribution",
+      "Nazim Shah": "Mughal Traders",
+      "Rameez Raja": "Gulzar Marketing",
+      "Shoaib Ahmed": "Geco Supplies",
+      "Syed Saqlain": "Reliance Distribution",
+      "Tufail Fareed": "Chaudhary Marketing 2",
+      "Usama Fayyaz": "Shan Marketing 1",
+      "Usman": "Arnial Traders",
+      "Waleed Abdullah": "Capital Marketing",
+      "Waleed Ijaz": "Friends Distribution",
+      "Waqas Ahmed": "Al Farooq Agencies",
+      "Yasir": "S&S Marketing",
+      "Saad Khalid": "Yousafzai Traders",
+      "Yawar": "Umair Traders"
+    };
+
+    nameEl.addEventListener("change", () => {
+      const dist = distMap[nameEl.value] || "";
+      distEl.value = dist;
+    });
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        videoStream = stream;
+        video.srcObject = stream;
+      }).catch(() => {
+        alert("Camera not accessible");
+      });
+
+    function capture() {
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL("image/jpeg");
+      selfieInput.value = dataURL.replace(/^data:image\/(png|jpeg);base64,/, "");
+      alert("✅ Selfie captured");
+
+      // Optional: Stop camera after capture
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+    }
+
+    document.getElementById("attendanceForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      if (!selfieInput.value) {
+        alert("❌ Please capture a selfie");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        const data = {
+          name: nameEl.value,
+          action: document.getElementById("action").value,
+          distribution: distEl.value,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          selfie: selfieInput.value
+        };
+
+        fetch(scriptURL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: new URLSearchParams(data)
+        }).then(response => response.text())
+          .then(result => {
+            if (result.trim() === "Already submitted") {
+              alert("⚠️ You already submitted this action today");
+            } else {
+              alert("✅ Attendance submitted!");
+              document.getElementById("attendanceForm").reset();
+              selfieInput.value = "";
+              distEl.value = "";
+            }
+
+            if (videoStream) {
+              videoStream.getTracks().forEach(track => track.stop());
+              video.srcObject = null;
+            }
+          }).catch(() => {
+            alert("❌ Failed to submit attendance");
+          });
+
+      }, function() {
+        alert("❌ Location permission denied");
+      });
+    });
+  </script>
+</body>
+</html>
