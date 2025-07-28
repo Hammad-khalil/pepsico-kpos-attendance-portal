@@ -61,6 +61,33 @@
       border-radius: 8px;
       margin-top: 10px;
     }
+    img#preview {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+    }
+    #loader {
+      display: none;
+      text-align: center;
+      margin-top: 10px;
+    }
+    #loader div {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 4px solid #00695c;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    #loader p {
+      margin-top: 8px;
+      color: #00695c;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -113,8 +140,14 @@
 
       <canvas id="canvas" style="display:none;"></canvas>
       <input type="hidden" id="selfie" name="selfie" />
+      <img id="preview" />
+      <button type="button" id="retryBtn" onclick="retry()" style="display:none;">🔄 Retry</button>
 
       <button type="submit">✅ Submit Attendance</button>
+      <div id="loader">
+        <div></div>
+        <p>Submitting...</p>
+      </div>
     </form>
   </div>
 
@@ -124,6 +157,8 @@
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const selfieInput = document.getElementById("selfie");
+    const preview = document.getElementById("preview");
+    const retryBtn = document.getElementById("retryBtn");
     let videoStream;
 
     const nameEl = document.getElementById("name");
@@ -176,14 +211,36 @@
       canvas.height = video.videoHeight;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataURL = canvas.toDataURL("image/jpeg");
-      selfieInput.value = dataURL.replace(/^data:image\/(png|jpeg);base64,/, "");
-      alert("✅ Selfie captured");
 
-      // Optional: Stop camera after capture
+      selfieInput.value = dataURL.replace(/^data:image\/(png|jpeg);base64,/, "");
+      preview.src = dataURL;
+      preview.style.display = "block";
+      retryBtn.style.display = "inline-block";
+
+      video.style.display = "none";
+
       if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
         video.srcObject = null;
       }
+
+      alert("✅ Selfie captured");
+    }
+
+    function retry() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          videoStream = stream;
+          video.srcObject = stream;
+          video.style.display = "block";
+
+          preview.style.display = "none";
+          retryBtn.style.display = "none";
+          selfieInput.value = "";
+        })
+        .catch(() => {
+          alert("❌ Camera not accessible");
+        });
     }
 
     document.getElementById("attendanceForm").addEventListener("submit", function(e) {
@@ -193,6 +250,13 @@
         alert("❌ Please capture a selfie");
         return;
       }
+
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const loader = document.getElementById("loader");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+      loader.style.display = "block";
 
       navigator.geolocation.getCurrentPosition(function(pos) {
         const data = {
@@ -219,7 +283,13 @@
               document.getElementById("attendanceForm").reset();
               selfieInput.value = "";
               distEl.value = "";
+              preview.style.display = "none";
+              retryBtn.style.display = "none";
             }
+
+            loader.style.display = "none";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "✅ Submit Attendance";
 
             if (videoStream) {
               videoStream.getTracks().forEach(track => track.stop());
@@ -227,10 +297,16 @@
             }
           }).catch(() => {
             alert("❌ Failed to submit attendance");
+            loader.style.display = "none";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "✅ Submit Attendance";
           });
 
       }, function() {
         alert("❌ Location permission denied");
+        loader.style.display = "none";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "✅ Submit Attendance";
       });
     });
   </script>
